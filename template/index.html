@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            max-width: 500px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+
+        input[type="submit"] {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            float: right;
+        }
+
+        .tasks-container {
+            max-width: 500px;
+            margin: 20px auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .task {
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Task Manager</h1>
+
+    <!-- Form to add a new task -->
+    <form id="taskForm">
+        <label for="title">Title:</label>
+        <input type="text" id="title" name="title" required><br>
+        <label for="description">Description:</label>
+        <textarea id="description" name="description" required></textarea><br>
+        <input type="submit" value="Add Task">
+    </form>
+
+    <!-- Container to display existing tasks -->
+    <div id="tasksContainer" class="tasks-container"></div>
+
+    <script>
+        // Function to fetch tasks from the Flask API and display them
+        function fetchTasks() {
+            fetch('/tasks')
+                .then(response => response.json())
+                .then(data => {
+                    const tasksContainer = document.getElementById('tasksContainer');
+                    tasksContainer.innerHTML = '';
+                    data.tasks.forEach(task => {
+                        const taskDiv = document.createElement('div');
+                        taskDiv.classList.add('task');
+                        taskDiv.innerHTML = `
+                        <h3>${task.title}</h3>
+                        <p>${task.description}</p>
+                        <button onclick="updateTask(${task.id})">Update</button>
+                        <button onclick="deleteTask(${task.id})">Delete</button>
+                    `;
+                        tasksContainer.appendChild(taskDiv);
+                    });
+                });
+        }
+
+        // Function to update a task
+        function updateTask(taskId) {
+            const updatedTitle = prompt("Enter new title:");
+            const updatedDescription = prompt("Enter new description:");
+
+            if (updatedTitle && updatedDescription) {
+                const data = {
+                    title: updatedTitle,
+                    description: updatedDescription
+                };
+
+                fetch(`/tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            console.log('Task updated successfully');
+                            // Refresh tasks after update
+                            fetchTasks();
+                        } else {
+                            throw new Error('Failed to update task');
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+        }
+
+        // Function to delete a task
+        function deleteTask(taskId) {
+            if (confirm("Are you sure you want to delete this task?")) {
+                fetch(`/tasks/${taskId}`, {
+                    method: 'DELETE'
+                })
+                    .then(response => {
+                        if (response.ok) {
+                            console.log('Task deleted successfully');
+                            // Refresh tasks after deletion
+                            fetchTasks();
+                        } else {
+                            throw new Error('Failed to delete task');
+                        }
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+        }
+        
+        // Event listener for form submission
+        document.getElementById('taskForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const formData = new FormData(this);
+            fetch('/tasks', {
+                method: 'POST',
+                body: JSON.stringify(Object.fromEntries(formData)),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Failed to add task');
+                })
+                .then(data => {
+                    fetchTasks();
+                    this.reset();
+                })
+                .catch(error => console.error('Error:', error));
+        });
+
+        // Fetch tasks on page load
+        fetchTasks();
+    </script>
+</body>
+
+</html>
