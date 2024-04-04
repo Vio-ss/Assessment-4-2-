@@ -74,7 +74,7 @@ def add_db():
     tasks = load_tasks()['tasks']
     data = request.json
     new_task = {
-        'id': tasks[-1]['id'] + 1 if tasks else 1,
+        'id': int(tasks[-1]['id']) + 1 if tasks else 1,
         'title': data['title'],
         'description': data['description'],
         'done': False
@@ -82,6 +82,7 @@ def add_db():
     tasks.append(new_task)
     save_tasks({'tasks': tasks})
     return jsonify(new_task), 201
+
 
 @app.route('/db.json/<int:task_id>', methods=['PUT'])
 def update_db(task_id):
@@ -95,16 +96,16 @@ def update_db(task_id):
     else:
         return jsonify({'error': 'Task not found'}), 404
 
-@app.route('/db.json/<int:task_id>', methods=['DELETE'])
-def delete_db(task_id):
+@app.route('/db.json', methods=['DELETE'])
+def delete_last_task():
     tasks = load_tasks()['tasks']
-    task = next((task for task in tasks if task['id'] == task_id), None)
-    if task:
-        tasks.remove(task)
+    if tasks:
+        last_task = tasks[-1]
+        tasks.remove(last_task)
         save_tasks({'tasks': tasks})
-        return jsonify({'message': 'Task deleted successfully'}), 200
+        return jsonify({'message': 'Last task deleted successfully'}), 200
     else:
-        return jsonify({'error': 'Task not found'}), 404
+        return jsonify({'error': 'No tasks found'}), 404
 
 def load_data():
     with open('db.json', 'r') as file:
